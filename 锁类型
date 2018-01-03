@@ -69,3 +69,32 @@ SELECT * FROM products WHERE id LIKE '3' FOR UPDATE;
 此外，如果A与B都对表id进行查询但查询不到记录，则A与B在查询上不会进行row锁，但A与B都会获取排它锁，
 此时A再插入一条记录的话则会因为B已经有锁而处于等待中，此时B再插入一条同样的数据则会抛出
 Deadlock found when trying to get lock; try restarting transaction然后释放锁，此时A就获得了锁而插入成功
+
+
+InnoDB有两种模式的行锁：
+
+1）共享锁：允许一个事务去读一行，阻止其他事务获得相同数据集的排他锁。
+    ( Select * from table_name where ......lock in share mode)
+
+2）排他锁：允许获得排他锁的事务更新数据，阻止其他事务取得相同数据集的共享读锁和  排他写锁。(select * from table_name where.....for update)
+    为了允许行锁和表锁共存，实现多粒度锁机制；同时还有两种内部使用的意向锁（都是表锁），分别为意向共享锁和意向排他锁。
+    InnoDB行锁是通过给索引项加锁来实现的，即只有通过索引条件检索数据，InnoDB才使用行级锁，否则将使用表锁！
+
+另外：插入，更新性能优化的几个重要参数
+
+bulk_insert_buffer_size
+批量插入缓存大小, 这个参数是针对MyISAM存储引擎来说的.适用于在一次性插入100-1000+条记录时, 提高效率.默认值是8M.可以针对数据量的大小,翻倍增加.
+
+concurrent_insert
+并发插入, 当表没有空洞(删除过记录), 在某进程获取读锁的情况下,其他进程可以在表尾部进行插入.
+
+值可以设0不允许并发插入, 1当表没有空洞时, 执行并发插入, 2不管是否有空洞都执行并发插入.
+默认是1 针对表的删除频率来设置.
+
+delay_key_write
+针对MyISAM存储引擎,延迟更新索引.意思是说,update记录时,先将数据up到磁盘,但不up索引,将索引存在内存里,当表关闭时,将内存索引,写到磁盘. 
+值为 0不开启, 1开启. 默认开启.
+
+delayed_insert_limit, delayed_insert_timeout, delayed_queue_size
+延迟插入, 将数据先交给内存队列, 然后慢慢地插入.但是这些配置,不是所有的存储引擎都支持, 目前来看, 常用的InnoDB不支持, MyISAM支持. 
+根据实际情况调大, 一般默认够用了
