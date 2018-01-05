@@ -1,0 +1,42 @@
+GET DIAGNOSTICS CONDITION 1 
+         @p1 = RETURNED_SQLSTATE, @p2 = MESSAGE_TEXT, @p3 = MYSQL_ERRNO, @p4 = CONSTRAINT_CATALOG, @p5 = CONSTRAINT_SCHEMA
+	 , @p6 = CONSTRAINT_NAME, @p7 = CATALOG_NAME, @p8 = SCHEMA_NAME, @p9 = TABLE_NAME, @p10 = COLUMN_NAME, @p11 = CURSOR_NAME;
+
+    insert into ccm_log (create_time,log_info1,log_info2,log_info3,log_info4,log_info5,log_info6,log_info7,log_info8,log_info9,ccm_logcol) 
+		values(now(),@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,CONCAT('changesetPkId:',changesetPkId),'`SP_CHANGESET_DEL`');
+
+
+
+DELIMITER $$  
+CREATE DEFINER=`root`@`localhost` EVENT `e_test` ON SCHEDULE   
+#修改以下调度信息  
+EVERY 1 DAY STARTS '2014-01-03 01:00:00' ON COMPLETION PRESERVE ENABLE DO   
+BEGIN  
+    DECLARE r_code CHAR(5) DEFAULT '00000';  
+    DECLARE r_msg TEXT;  
+    DECLARE v_error INTEGER;  
+    DECLARE v_starttime DATETIME DEFAULT NOW();  
+    DECLARE v_randno INTEGER DEFAULT FLOOR(RAND()*100001);  
+      
+    INSERT INTO mysql.t_event_history (dbname,eventname,starttime,randno)   
+    #修改下面的作业名（该作业的名称）  
+    VALUES(DATABASE(),'e_test', v_starttime,v_randno);    
+      
+    BEGIN  
+        #异常处理段  
+        DECLARE CONTINUE HANDLER FOR SQLEXCEPTION    
+        BEGIN  
+            SET  v_error = 1;  
+            GET DIAGNOSTICS CONDITION 1 r_code = RETURNED_SQLSTATE , r_msg = MESSAGE_TEXT;  
+        END;  
+          
+        #此处为实际调用的用户程序过程  
+        CALL test.usp_test1();  
+    END;  
+      
+    UPDATE mysql.t_event_history SET endtime=NOW(),issuccess=ISNULL(v_error),duration=TIMESTAMPDIFF(SECOND,starttime,NOW()), errormessage=CONCAT('error=',r_code,', message=',r_msg),randno=NULL WHERE starttime=v_starttime AND randno=v_randno;  
+      
+END$$  
+DELIMITER ;  
+
+http://blog.csdn.net/seteor/article/details/17791855
