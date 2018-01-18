@@ -1,0 +1,45 @@
+1，show processList;
+显示哪些线程正在运行
+
+来自 <http://www.cnblogs.com/JulyZhang/archive/2011/01/28/1947165.html> 
+
+mysql> show status like 'Threads%';
++-------------------+-------+
+| Variable_name     | Value |
++-------------------+-------+
+| Threads_cached    | 58    |
+| Threads_connected | 57    |   ###这个数值指的是打开的连接数
+| Threads_created   | 3676  |
+| Threads_running   | 4     |   ###这个数值指的是激活的连接数，这个数值一般远低于connected数值
+
+Threads_connected 跟show processlist结果相同，表示当前连接数。准确的来说，Threads_running是代表当前并发数
+
+mysql> kill 657
+
+2,数据库导出导致网络阻塞
+mysql Writing to net & max_allowed_packet
+
+来自 <http://blog.csdn.net/gua___gua/article/details/48734713> 
+http://blog.csdn.net/shaochenshuo/article/details/58603157
+
+3，show variables like '%connection%';
+查看db的连接数限制：
+
+来自 <http://blog.csdn.net/wzb56_earl/article/details/51868584> 
+
+4，
+ 直接使用show engine innodb status查看
+
+SELECT * FROM INFORMATION_SCHEMA.INNODB_TRX\G;查询和事务相关的（上网查查）
+
+来自 <http://blog.csdn.net/hw_libo/article/details/39080809> 
+
+5，http://blog.csdn.net/hw_libo/article/details/39080809
+
+
+6，
+ show open tables where in_use =1;
+
+这条命令能够查看当前有那些表是打开的。In_use列表示有多少线程正在使用某张表，Name_locked表示表名是否被锁，这一般发生在Drop或Rename命令操作这张表时。所以这条命令不能帮助解答我们常见的问题：当前某张表是否有死锁，谁拥有表上的这个锁等。
+
+来自 <http://blog.csdn.net/tswisdom/article/details/44938955> 
