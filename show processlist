@@ -1,0 +1,84 @@
+Show processlist;
+mysql> show processlist\G
+*************************** 1. row ***************************
+     Id: 226588
+   User: root
+   Host: localhost:64271
+     db: ccm2_tool
+Command: Sleep
+   Time: 23032
+  State:
+   Info: NULL
+*************************** 2. row ***************************
+     Id: 226589
+   User: root
+   Host: localhost:64272
+     db: ccm2_tool
+Command: Sleep
+   Time: 23036
+  State:
+   Info: NULL
+*************************** 3. row ***************************
+     Id: 232615
+   User: root
+   Host: localhost:59141
+     db: huawei2015
+Command: Query
+   Time: 0
+  State: init
+   Info: show processlist
+host显示连接的发起地，以及发起的端口，可以使用这个信息找到那个进程打开了连接。使用netstat和端口号找到打开连接的进程（root权限）
+netstat -ntp | grep 64271
+tcp        0      0 127.0.0.1:53621         127.0.0.1:3306          ESTABLISHED 26025/java  
+进程号和名字位于输出的最后一个字段
+
+一旦知道了这个进行ID，就可以去获得其他信息
+netstat -ntp | grep 26025/java
+tcp        0      0 127.0.0.1:60437         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60446         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60451         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60447         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60439         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60441         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60443         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60453         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60452         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60449         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:53621         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        1      0 10.253.77.17:38925      10.3.25.240:80          CLOSE_WAIT  26025/java      
+tcp        0      0 127.0.0.1:60450         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60442         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        1      0 10.253.77.17:54627      10.3.25.240:80          CLOSE_WAIT  26025/java      
+tcp        0      0 127.0.0.1:60448         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        1      0 10.253.77.17:34325      10.3.25.240:80          CLOSE_WAIT  26025/java      
+tcp        0      0 127.0.0.1:60444         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:50234         127.0.0.1:11211         ESTABLISHED 26025/java      
+tcp        0      0 10.253.77.17:46487      10.253.101.185:5672     ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60440         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:53626         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60454         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60438         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60445         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60455         127.0.0.1:3306          ESTABLISHED 26025/java      
+tcp        0      0 127.0.0.1:60380         127.0.0.1:3306          ESTABLISHED 26025/java 
+可以看出有多个端口是开启的，并且端口5672连接在连接在另外一台机器上
+
+端口列表通常位于/etc/services
+grep 5672 /etc/services
+amqp            5672/tcp
+amqp            5672/udp
+amqp            5672/sctp
+显示连接的是rabbitmq
+
+
+在看看26025进程的消息，使用ps可以了解进程正在做的事情
+1,ps -eaf | grep 'UID\|26025'
+UID         PID   PPID  C STIME TTY          TIME CMD
+ccmsyst+  26025      1  0 Jan29 ?        00:22:46 /usr/bin/java -Djava.util.logging.config.file=/mnt/disk/ccmsystem/apache-tomcat-8.0.37/conf/logging.properties -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager -Djdk.tls.ephemeralDHKeySize=2048 -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true -Dfile.encoding=UTF-8 -server -Xms8192m -Xmx8192m -Xmn4096m -XX:PermSize=256m -XX:MaxPermSize=512m -XX:SurvivorRatio=10 -XX:MaxTenuringThreshold=15 -XX:NewRatio=2 -XX:+DisableExplicitGC -Djava.endorsed.dirs=/mnt/disk/ccmsystem/apache-tomcat-8.0.37/endorsed -classpath /mnt/disk/ccmsystem/apache-tomcat-8.0.37/bin/bootstrap.jar:/mnt/disk/ccmsystem/apache-tomcat-8.0.37/bin/tomcat-juli.jar -Dcatalina.base=/mnt/disk/ccmsystem/apache-tomcat-8.0.37 -Dcatalina.home=/mnt/disk/ccmsystem/apache-tomcat-8.0.37 -Djava.io.tmpdir=/mnt/disk/ccmsystem/apache-tomcat-8.0.37/temp org.apache.catalina.startup.Bootstrap start
+这个是tomcat启动的进程。
+
+还可以使用lsof列出进程打开的文件，这对于查找信息很有帮助
+1,lsof -i -P | grep 26025
+
+
+在linux上/proc文件系统对于解决问题有极大的帮助。每个进程在/proc下都有自己的文件，并且可以看到关于它的大量信息，比如当前的工作目录，内存使用情况等
