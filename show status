@@ -1,0 +1,70 @@
+一些值得监控的变量
+Bytes_received和Bytes_sent:和服务器之间来往的流量
+Com_*:服务器正在执行的命令
+Created_*：在查询执行期间创建的临时表和文件
+Handler_*:存储引擎操作
+Select_*：不同类型的联接执行计划
+Sort_*:几种排序信息
+
+
+
+方法步奏：
+1，show status like 'select%';
++------------------------+-------+
+| Variable_name          | Value |
++------------------------+-------+
+| Select_full_join       | 0     |
+| Select_full_range_join | 0     |
+| Select_range           | 0     |
+| Select_range_check     | 0     |
+| Select_scan            | 2     |
++------------------------+-------+
+
+2,show status like 'handler%';
++----------------------------+-------+
+| Variable_name              | Value |
++----------------------------+-------+
+| Handler_commit             | 0     |
+| Handler_delete             | 0     |
+| Handler_discover           | 0     |
+| Handler_external_lock      | 0     |
+| Handler_mrr_init           | 0     |
+| Handler_prepare            | 0     |
+| Handler_read_first         | 0     |
+| Handler_read_key           | 0     |
+| Handler_read_last          | 0     |
+| Handler_read_next          | 0     |
+| Handler_read_prev          | 0     |
+| Handler_read_rnd           | 0     |
+| Handler_read_rnd_next      | 128   |
+| Handler_rollback           | 0     |
+| Handler_savepoint          | 0     |
+| Handler_savepoint_rollback | 0     |
+| Handler_update             | 0     |
+| Handler_write              | 126   |
++----------------------------+-------+
+read值很高，意味着mysql需要扫描多个表才能满足查询需要，通常如果mysql只对一个表使用了全表扫描，我们就会看到Handler_read_rnd_next的值较高，并且Handler_read_rnd
+的值为0
+Handler_update 和Handler_write  不为0，意味着mysql必须使用临时表来满足group by和order by子句。mysql假定写入临时文件。扫描他并进行排序。然后再次进行扫描，输出排序后的结果，
+下面看看mysql为排序做了什么。
+3，show status like 'sort%'
+
++-------------------+-------+
+| Variable_name     | Value |
++-------------------+-------+
+| Sort_merge_passes | 0     |
+| Sort_range        | 0     |
+| Sort_rows         | 0     |
+| Sort_scan         | 0     |
++-------------------+-------+
+Mysql 通过扫描包含输出中所有行的临时文件进行排序
+
+查看mysql创建了多少临时表
+4，show status like 'created%'
++-------------------------+-------+
+| Variable_name           | Value |
++-------------------------+-------+
+| Created_tmp_disk_tables | 0     |
+| Created_tmp_files       | 8238  |
+| Created_tmp_tables      | 2     |
++-------------------------+-------+
