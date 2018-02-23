@@ -1,0 +1,78 @@
+1，查看slow_log是否打开
+show variables like '%slow%'; 
++---------------------+---------------------------------+  
+| Variable_name       | Value                           |  
++---------------------+---------------------------------+  
+| log_slow_queries    | OFF                             |  
+| slow_launch_time    | 2                               |  
+| slow_query_log      | OFF                             |  
+| slow_query_log_file | /var/lib/mysql/suse11b-slow.log |  
++---------------------+---------------------------------+  
+2，打开slow_log
+set global log_slow_queries=1;
+
+3，设置生效时间
+--为便于演示，我们将全局和session级别long_query_time设置为1
+set global long_query_time=1; 
+set session long_query_time=1; 
+
+4，格式化慢查询日志
+结构化慢查询日志就是把慢查询日志中的重要信息按照便于阅读以及按照特定的排序方式来提取SQL。  
+这种方式有点类似于Oracle中有个tkprof来格式化oracle的trace文件。  
+对于前面的慢查询日志我们使用mysqldumpslow来提取如下：  
+  
+suse11b:~ # mysqldumpslow -s at,al /var/lib/mysql/suse11b-slow.log  
+Reading mysql slow query log from /var/lib/mysql/suse11b-slow.log  
+Count: 4  Time=16.87s (67s)  Lock=0.00s (0s)  Rows=0.0 (0), root[root]@localhost  
+  insert into tb_slow select * from tb_slow  
+  
+Count: 1  Time=0.20s (0s)  Lock=0.00s (0s)  Rows=1.0 (1), root[root]@localhost  
+  select count(*) from tb_slow  
+  
+Count: 1  Time=1.57s (1s)  Lock=0.00s (0s)  Rows=83.0 (83), root[root]@localhost  
+  select table_schema,table_name,count(*) from tb_slow  
+  group by table_schema,table_name order by N,N  
+  
+#以下是按照最大耗用时间排最后，只显示2条的方式格式化日志文件  
+suse11b:~ # mysqldumpslow -r -t 2 /var/lib/mysql/suse11b-slow.log  
+Reading mysql slow query log from /var/lib/mysql/suse11b-slow.log  
+Count: 1  Time=1.57s (1s)  Lock=0.00s (0s)  Rows=83.0 (83), root[root]@localhost  
+  select table_schema,table_name,count(*) from tb_slow  
+  group by table_schema,table_name order by N,N  
+  
+Count: 4  Time=16.87s (67s)  Lock=0.00s (0s)  Rows=0.0 (0), root[root]@localhost  
+  insert into tb_slow select * from tb_slow  
+    
+#获取mysqldumpslow的帮助信息  
+suse11b:~ # mysqldumpslow --help  
+Usage: mysqldumpslow [ OPTS... ] [ LOGS... ]  
+  
+Parse and summarize the MySQL slow query log. Options are  
+  
+  --verbose    verbose  
+  --debug      debug  
+  --help       write this text to standard output  
+  
+  -v           verbose  
+  -d           debug  
+  -s ORDER     what to sort by (al, at, ar, c, l, r, t), 'at' is default  
+                al: average lock time  
+                ar: average rows sent  
+                at: average query time  
+                 c: count        #query的次数  
+                 l: lock time  
+                 r: rows sent    #返回的记录数  
+                 t: query time    
+  -r           reverse the sort order (largest last instead of first)  
+  -t NUM       just show the top n queries  
+  -a           don't abstract all numbers to N and strings to 'S'  
+  -n NUM       abstract numbers with at least n digits within names  
+  -g PATTERN   grep: only consider stmts that include this string  
+  -h HOSTNAME  hostname of db server for *-slow.log filename (can be wildcard),  
+               default is '*', i.e. match all  
+  -i NAME      name of server instance (if using mysql.server startup script)  
+  -l           don't subtract lock time from total time
+
+
+
+
