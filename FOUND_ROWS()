@@ -1,0 +1,13 @@
+mysql 4.1中新增了FOUND_ROWS()函数，这个函数的说明是这样的：
+	For a SELECT with a LIMIT clause, the number of rows that would be returned were there no LIMIT clause
+	A SELECT statement may include a LIMIT clause to restrict the number of rows the server returns to the client. 
+  In some cases, it is desirable to know how many rows the statement would have returned without the LIMIT,
+  but without running the statement again. To obtain this row count, include a SQL_CALC_FOUND_ROWS option in the SELECT statement, 
+  and then invoke FOUND_ROWS() afterward:
+比如说有段sql需要取出一张表的前10行，同时又需要取出符合条件的总数。这在某些翻页操作中很常见
+SELECT SQL_CALC_FOUND_ROWS * FROM tbl_name
+WHERE id > 100 LIMIT 10;
+在上一查询之后，你只需要用FOUND_ROWS()就能获得查询总数，这个数目是抛掉了LIMIT之后的结果数:
+SELECT FOUND_ROWS();
+
+其中第一个sql里面的SQL_CALC_FOUND_ROWS不可省略，它表示需要取得结果数，也是后面使用FOUND_ROWS()函数的铺垫。
