@@ -1,0 +1,24 @@
+一般情况下mysql不区分大小写
+mysql> select * from product where _name = 'hhzz';
++-----+-------+-------+------------+
+| _id | _name | _desc | _is_active |
++-----+-------+-------+------------+
+|  74 | HHZZ  |       |          1 |
++-----+-------+-------+------------+
+1 row in set (0.00 sec)
+
+这在一定程度上会影响用户的使用和数据的正确性。
+
+怎么处理?
+在查询的时候添加一个binary字段即可
+mysql> select * from product where binary _name = 'hhzz';
+Empty set (0.00 sec)
+
+mysql> select * from product where binary _name = 'HHZZ';
++-----+-------+-------+------------+
+| _id | _name | _desc | _is_active |
++-----+-------+-------+------------+
+|  74 | HHZZ  |       |          1 |
++-----+-------+-------+------------+
+1 row in set (0.00 sec)
+而且这个不影响正常的使用
